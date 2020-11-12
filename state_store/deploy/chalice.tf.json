@@ -1,0 +1,79 @@
+{
+  "resource": {
+    "aws_iam_role": {
+      "handle_kinesis_message_role": {
+        "name": "state-store-dev-handle_kinesis_message",
+        "assume_role_policy": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Sid\": \"\", \"Effect\": \"Allow\", \"Principal\": {\"Service\": \"lambda.amazonaws.com\"}, \"Action\": \"sts:AssumeRole\"}]}"
+      }
+    },
+    "aws_iam_role_policy": {
+      "handle_kinesis_message_role": {
+        "name": "handle_kinesis_message_rolePolicy",
+        "policy": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Action\": [\"logs:CreateLogGroup\", \"logs:CreateLogStream\", \"logs:PutLogEvents\"], \"Resource\": \"arn:aws:logs:*:*:*\", \"Effect\": \"Allow\"}, {\"Action\": [\"kinesis:Get*\", \"kinesis:ListStreams\", \"kinesis:DescribeStream*\"], \"Resource\": \"arn:aws:kinesis:*:*:stream/TestDataStream\", \"Effect\": \"Allow\"}, {\"Sid\": \"SpecificTable\", \"Action\": [\"dynamodb:PutItem\", \"dynamodb:DeleteItem\", \"dynamodb:UpdateItem\", \"dynamodb:GetItem\", \"dynamodb:Scan\", \"dynamodb:Query\"], \"Resource\": \"arn:aws:dynamodb:*:*:table/User-StateStore\", \"Effect\": \"Allow\"}]}",
+        "role": "${aws_iam_role.handle_kinesis_message_role.id}"
+      }
+    },
+    "aws_lambda_function": {
+      "handle_kinesis_message": {
+        "function_name": "state-store-dev-handle_kinesis_message",
+        "runtime": "python3.8",
+        "handler": "app.handle_kinesis_message",
+        "memory_size": 128,
+        "tags": {
+          "aws-chalice": "version=1.21.4:stage=dev:app=state-store"
+        },
+        "timeout": 60,
+        "source_code_hash": "${filebase64sha256(\"${path.module}/deployment.zip\")}",
+        "filename": "${path.module}/deployment.zip",
+        "environment": {
+          "variables": {
+            "KINESIS_STREAM_NAME": "TestDataStream",
+            "TABLE_NAME": "User-StateStore"
+          }
+        },
+        "role": "${aws_iam_role.handle_kinesis_message_role.arn}"
+      }
+    },
+    "aws_lambda_event_source_mapping": {
+      "handle_kinesis_message-kinesis-event-source": {
+        "event_source_arn": "arn:${data.aws_partition.chalice.partition}:kinesis:${data.aws_region.chalice.name}:${data.aws_caller_identity.chalice.account_id}:stream/TestDataStream",
+        "batch_size": 100,
+        "starting_position": "LATEST",
+        "function_name": "state-store-dev-handle_kinesis_message"
+      }
+    }
+  },
+  "terraform": {
+    "required_version": "> 0.11.0, < 0.14.0"
+  },
+  "provider": {
+    "template": {
+      "version": "~> 2"
+    },
+    "aws": {
+      "version": "~> 2"
+    },
+    "null": {
+      "version": "~> 2"
+    }
+  },
+  "data": {
+    "aws_caller_identity": {
+      "chalice": {}
+    },
+    "aws_partition": {
+      "chalice": {}
+    },
+    "aws_region": {
+      "chalice": {}
+    },
+    "null_data_source": {
+      "chalice": {
+        "inputs": {
+          "app": "state-store",
+          "stage": "dev"
+        }
+      }
+    }
+  }
+}

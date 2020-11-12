@@ -1,0 +1,14 @@
+{
+  "version": "2.0",
+  "app_name": "state-store",
+  "stages": {
+    "dev": {
+      "autogen_policy": false,
+      "api_gateway_stage": "api",
+      "environment_variables": {
+      	"KINESIS_STREAM_NAME": "TestDataStream",
+        "TABLE_NAME": "User-StateStore"
+      }
+    }
+  }
+}
